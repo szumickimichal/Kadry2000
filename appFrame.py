@@ -12,17 +12,19 @@ from datetime import datetime
 from tkcalendar import Calendar
 
 
-class Menu(tk.Frame):
-    def __init__(self):
-        tk.Frame.__init__(self)
+class MainApplication(tk.Frame):
+    def __init__(self, root):
+        tk.Frame.__init__(self, root)
 
-        self.selected_user = None
+        self.root = root
+        self.selected_user = {}  # Selected user values
+
         self.open_menu()
 
     def open_menu(self):
         self.clear_frame(self)
 
-        self.selected_user = None
+        self.selected_user = {}
 
         self.add_users_table()
         self.add_right_bar()
@@ -30,17 +32,19 @@ class Menu(tk.Frame):
     def add_right_bar(self):
         self.bar_frame = tk.Frame(self)
         buttons_width = 100
-        tk.Button(self.bar_frame, text="Dodaj nowego pracownika", command=lambda: self.add_new_employee()).pack(fill='both', expand=True, ipadx=buttons_width )
-        tk.Button(self.bar_frame, text="Edytuj pracownika", state='disabled', command=lambda: self.edit_employee()).pack(fill='both', expand=True, ipadx=buttons_width)
-        tk.Button(self.bar_frame, text="Usuń pracownika", state='disabled', command=lambda: self.delete_employee()).pack(fill='both', expand=True, ipadx=buttons_width)
-        tk.Button(self.bar_frame, text="Dodaj aktywność", state='disabled', command=lambda: self.add_employee_activity()).pack(fill='both', expand=True, ipadx=buttons_width)
-        tk.Button(self.bar_frame, text="Podgląd aktywności", state='disabled', command=lambda: self.activity_preview()).pack(fill='both', expand=True, ipadx=buttons_width)
-        tk.Button(self.bar_frame, text="Generuj raport", state='disabled').pack(fill='both', expand=True, ipadx=buttons_width)
-        tk.Button(self.bar_frame, text="Generuj wniosek", state='disabled', command=lambda: self.generate_application()).pack(fill='both', expand=True, ipadx=buttons_width)
-        self.bar_frame.pack(side="right")
+        tk.Button(self.bar_frame, text="Dodaj nowego pracownika", command=lambda: self.add_new_employee()).pack(fill='both', ipadx=buttons_width, ipady=10)
+        tk.Button(self.bar_frame, text="Edytuj pracownika", state='disabled', command=lambda: self.edit_employee()).pack(fill='both', ipadx=buttons_width, ipady=10)
+        tk.Button(self.bar_frame, text="Usuń pracownika", state='disabled', command=lambda: self.delete_employee()).pack(fill='both', ipadx=buttons_width, ipady=10)
+        tk.Button(self.bar_frame, text="Dodaj aktywność", state='disabled', command=lambda: self.add_employee_activity()).pack(fill='both', ipadx=buttons_width, ipady=10)
+        tk.Button(self.bar_frame, text="Podgląd aktywności", state='disabled', command=lambda: self.activity_preview()).pack(fill='both', ipadx=buttons_width, ipady=10)
+        tk.Button(self.bar_frame, text="Generuj raport", state='disabled').pack(fill='both', ipadx=buttons_width, ipady=10)
+        tk.Button(self.bar_frame, text="Generuj wniosek", state='disabled', command=lambda: self.generate_application()).pack(fill='both', ipadx=buttons_width, ipady=10)
+        self.bar_frame.pack(side="left", fill="x", expand=False)
 
     def activity_preview(self):
         preview_root = tk.Toplevel()
+        preview_root.title("Podgląd")
+
         preview_root.geometry("800x600")
 
         preview = Agenda(preview_root)
@@ -322,7 +326,7 @@ class Menu(tk.Frame):
     def add_users_table(self):
         # Tworzenie ramki dla Treeview
         users_table_frame = tk.Frame(self)
-        users_table_frame.pack(side="left")
+        users_table_frame.pack(side="left", fill="x", expand=False)
 
         # generowanie df z wszystkimi pracowanikami
         df = sqlWorkspace.read_table(PRACOWNICY_TABLE_NAME)
@@ -360,20 +364,26 @@ class Menu(tk.Frame):
         tree.bind('<ButtonRelease-1>', _on_select)
 
 
-class MainApplication(tk.Frame):
-    def __init__(self, parent):
-        tk.Frame.__init__(self, parent)
-
-        self.parent = parent
-        self.menu = Menu()
-
-        self.menu.pack(fill='both', expand=True)
+# class MainApplication(tk.Frame):
+#     def __init__(self, parent):
+#         tk.Frame.__init__(self, parent)
+#
+#
+#         self.parent = parent
+#         self.menu = Menu()
+#
+#         self.menu.pack(fill='both', expand=True)
 
 
 if __name__ == "__main__":
+    # ustawienia okna
     root = tk.Tk()
+    root.title("Kadry2000")
     initial_x = 400
     initial_y = 100
     root.geometry(f"1200x400+{initial_x}+{initial_y}")
+
+    # Główna aplikacja
     MainApplication(root).pack(fill='both', expand=True)
+
     root.mainloop()
