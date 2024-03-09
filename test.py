@@ -53,6 +53,15 @@ def read_table(table_name, where=""):
     else:
         query = f'SELECT * FROM {table_name} WHERE {where}'
     df = pd.read_sql_query(query, conn)
+    asd = df["Tryb"].groupby([df['Imie'], df['Nazwisko'], df['Tryb']]).count()
+    asd = asd.rename('Liczba')
+
+    asd = asd.reset_index()
+
+    pivot_df = asd.pivot(index=['Imie', 'Nazwisko'], columns='Tryb', values='Liczba').reset_index()
+
+    print(pivot_df)
+    # asd = asd.to_frame()
 
     # Zamknij połączenie
     conn.close()
@@ -79,4 +88,5 @@ def all_days_except_weekends(start_date, end_date):
 
 # df = pd.DataFrame({'Imie': ["Jan", "AAA"], 'Nazwisko': ["Kowalski", "aad"], 'Stanowisko': ['11:00', "rolnik"]})
 # add_rows(df, PRACOWNICY_TABLE_NAME)
-read_table(PRACOWNICY_TABLE_NAME)
+read_table(OBECNOSC_TABLE_NAME)
+

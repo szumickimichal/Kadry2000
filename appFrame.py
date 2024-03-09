@@ -332,7 +332,7 @@ class MainApplication(tk.Frame):
         df = sqlWorkspace.read_table(PRACOWNICY_TABLE_NAME)
 
         # Utworzenie Treeview
-        tree = ttk.Treeview(users_table_frame, columns=list(df.columns), show='headings', height=10)
+        tree = ttk.Treeview(users_table_frame, columns=list(df.columns), show='headings', height=15)
         tree.pack(side='left', fill='both')
 
         # Dodanie nagłówków do Treeview
