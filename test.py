@@ -53,6 +53,7 @@ def read_table(table_name, where=""):
     else:
         query = f'SELECT * FROM {table_name} WHERE {where}'
     df = pd.read_sql_query(query, conn)
+    print(df)
     asd = df["Tryb"].groupby([df['Imie'], df['Nazwisko'], df['Tryb']]).count()
     asd = asd.rename('Liczba')
 
@@ -67,7 +68,7 @@ def read_table(table_name, where=""):
     conn.close()
 
     # Wyświetl DataFrame
-    print(df)
+    # print(df)
 
 
 def all_days_except_weekends(start_date, end_date):

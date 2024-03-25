@@ -12,6 +12,42 @@ from datetime import datetime
 from tkcalendar import Calendar
 
 
+def get_values_from_obecnosc_table(info_dict) -> pd.DataFrame:
+    df_report = sqlWorkspace.read_table(OBECNOSC_TABLE_NAME)
+
+    mask = (info_dict["START"] < df_report["Data"]) & (df_report["Data"] < info_dict["END"])
+    df_report = df_report[mask]
+
+    df_report = df_report["Tryb"].groupby([df_report['Imie'], df_report['Nazwisko'], df_report['Tryb']]).count()
+    df_report = df_report.rename('Liczba')
+
+    df_report = df_report.reset_index()
+
+    df_report = df_report.pivot(index=['Imie', 'Nazwisko'], columns='Tryb', values='Liczba').reset_index()
+
+    for tryb_column in ACTIVITY_LIST:
+        if tryb_column not in df_report.columns:
+            df_report[tryb_column] = "-"
+
+    return df_report
+
+def get_values_from_pracoiwnicy_table(df_report) -> pd.DataFrame:
+    df_pracownicy = sqlWorkspace.read_table(PRACOWNICY_TABLE_NAME)
+
+    df_pracownicy = pd.merge(df_report, df_pracownicy[["Imie", "Nazwisko", "LimitUrlopu", "DniuUrlopu"]], on=['Imie', "Nazwisko"], how='left')
+
+    return df_pracownicy
+
+def generate_report(info_dict):
+
+    df_report = get_values_from_obecnosc_table(info_dict)
+
+    df_report = get_values_from_pracoiwnicy_table(df_report)
+
+    df_report.to_excel(f"Zestawienie urlopow {info_dict['START']} {info_dict['END']}.xlsx", index=False)
+
+    print(df_report)
+
 class MainApplication(tk.Frame):
     def __init__(self, root):
         tk.Frame.__init__(self, root)
@@ -37,9 +73,62 @@ class MainApplication(tk.Frame):
         tk.Button(self.bar_frame, text="Usuń pracownika", state='disabled', command=lambda: self.delete_employee()).pack(fill='both', ipadx=buttons_width, ipady=10)
         tk.Button(self.bar_frame, text="Dodaj aktywność", state='disabled', command=lambda: self.add_employee_activity()).pack(fill='both', ipadx=buttons_width, ipady=10)
         tk.Button(self.bar_frame, text="Podgląd aktywności", state='disabled', command=lambda: self.activity_preview()).pack(fill='both', ipadx=buttons_width, ipady=10)
-        tk.Button(self.bar_frame, text="Generuj raport", state='disabled').pack(fill='both', ipadx=buttons_width, ipady=10)
+        tk.Button(self.bar_frame, text="Generuj raport", state='normal', command=lambda: self.create_report()).pack(fill='both', ipadx=buttons_width, ipady=10)
         tk.Button(self.bar_frame, text="Generuj wniosek", state='disabled', command=lambda: self.generate_application()).pack(fill='both', ipadx=buttons_width, ipady=10)
+        tk.Button(self.bar_frame, text="Generuj kartę czasu pracy", state='disabled', command=lambda: self.generate_application()).pack(fill='both', ipadx=buttons_width, ipady=10)
         self.bar_frame.pack(side="left", fill="x", expand=False)
+
+    def create_report(self):
+        self.clear_frame(self)
+
+        info_dict = {}
+        generate_application_frame = tk.Frame(self)
+        generate_application_frame.pack()
+
+        def _add_start_date():
+            label = tk.Label(generate_application_frame, text="Data rozpoczęcia raportu", width=32, relief="groove")
+            label.grid(row=0, column=0, sticky=tk.NSEW)
+            # Get the current date
+            current_date = datetime.now()
+
+            # Get the first day of the current year
+            first_day = datetime(current_date.year, 1, 1)
+
+            info_dict["START"] = tkcalendar.DateEntry(generate_application_frame, date_pattern="yyyy-mm-dd")
+            info_dict["START"].set_date(first_day)
+            info_dict["START"].grid(row=0, column=1, sticky=tk.NSEW)
+
+        def _add_end_date():
+            label = tk.Label(generate_application_frame, text="Data zakończenia raportu", width=32, relief="groove")
+            label.grid(row=1, column=0, sticky=tk.NSEW)
+
+            # Get the current date
+            current_date = datetime.now()
+            # Get the last day of the current year
+            last_day = datetime(current_date.year, 12, 31)
+
+            info_dict["END"] = tkcalendar.DateEntry(generate_application_frame, date_pattern="yyyy-mm-dd")
+            info_dict["END"].set_date(last_day)
+            info_dict["END"].grid(row=1, column=1, sticky=tk.NSEW)
+
+        def _add_buttons():
+            menu_button = tk.Button(generate_application_frame, text="Cofnij", width=32, relief="groove", command=lambda: self.open_menu())
+            menu_button.grid(row=3, column=0, sticky=tk.NSEW)
+            add_worker_button = tk.Button(generate_application_frame, text="Generuj raport", width=32, relief="groove", command=lambda: _convert_dict_and_run_generate_report())
+            add_worker_button.grid(row=3, column=1, sticky=tk.NSEW)
+
+        def _convert_dict_and_run_generate_report():
+            def _convert_dict():
+                for key, value in info_dict.items():
+                    if isinstance(value, tk.Entry):
+                        info_dict[key] = value.get()
+
+            _convert_dict()
+            generate_report(info_dict)
+
+        _add_start_date()
+        _add_end_date()
+        _add_buttons()
 
     def activity_preview(self):
         preview_root = tk.Toplevel()
@@ -66,6 +155,9 @@ class MainApplication(tk.Frame):
     def generate_document(self, info_dict):
         doc = docx.Document(APPLICATION_DOCUMENT_DIR)
 
+        # doc2 = docx.Document(TIME_CARD_DOCUMENT_DIR)
+        # doc2.tables[0].cell(7,0).text = "DUPA"
+        # doc2.save(f'DUPA {info_dict["IMIE"]} {info_dict["NAZWISKO"]}.docx')
         for paragraph in doc.paragraphs:
             paragraph.text = paragraph.text.replace("TODAY", info_dict["TODAY"])
             paragraph.text = paragraph.text.replace("IMIE", info_dict["IMIE"])
